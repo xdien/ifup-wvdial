@@ -181,6 +181,9 @@ change_default_route(){
             gateway=`head -n1 /var/lib/dhclient/eth0.routers`
             if [ -z "${gateway}" ]; then
                echo "${datat} - Not found GATEWAY for file /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+               echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+               /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
+               /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
                return
             fi
         else
@@ -237,13 +240,11 @@ start_wvdial(){
     sleep 3
   done
   sleep 4
-  . /etc/sysconfig/network-scripts/ifcfg-eth0
-  if [ "${BOOTPROTO}" = "dhcp" ]; then
-     /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
-    /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
-  fi
   change_default_route
-  #/etc/init.d/network restart
+  echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+  /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
+  /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
+  /etc/init.d/firewall restart
   return 0
 }
 
@@ -284,6 +285,9 @@ checking_internet() {
                     gateway=`head -n1 /var/lib/dhclient/eth0.routers`
                     if [ -z "${gateway}" ]; then
                        echo "${datat} - Not found GATEWAY for file /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+                       echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+                       /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
+                       /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
                        return
                     fi
                  else
