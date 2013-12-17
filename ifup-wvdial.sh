@@ -7,6 +7,7 @@ datal=`date +%Y%m%d`
 datat=`date +%T`
 define_clearos=`cat /etc/issue | grep 'ClearOS'`
 number_cycles_eth=5; cycle_eth=0
+cycles_start_wvdial=3
 ping_eth="no"; ping_ppp="no"
 usb_dev=""; cur_ping_ppp=""; cur_ping_eth=""
 run_program_eth=$3; run_program_ppp=$4
@@ -217,6 +218,7 @@ killall_wvdial(){
       break
     fi
   done
+  sleep 5
   if [ -f /var/run/ppp0.pid ]; then
      echo "${datat} - del /var/run/ppp0.pid" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
      rm -f /var/run/ppp0.pid
@@ -224,22 +226,28 @@ killall_wvdial(){
 }
 
 start_wvdial(){
+  cycl_start=0
   fix_network_conf "ppp0"
   echo "${datat} - Start wvdial" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
   wvdial &
   while true; do
+    sleep 3
     wvdial_found="no"
     ps -A | grep 'wvdial' > /dev/null 2>&1 && wvdial_found="yes"
     if [ "${wvdial_found}" = "no" ]; then
        return 1
     fi
-    gateway_dev=`ip route list | awk '/^ppp0 / { print $5 }'`
-    if [ -z "${gateway_dev}" ]; then
+    gateway_dev=`ip route list | awk '/^default / { print $3 }'`
+    if [ "${gateway_dev}" = "ppp0" ]; then
        break
     fi
-    sleep 3
+    if [ ${cycl_start} = ${cycles_start_wvdial} ]; then
+       echo "${datat} - Break to cycles start wvdial ${cycles_start_wvdial}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+       break
+    fi
+    let "cycl_start = ${cycl_start} + 1";
   done
-  sleep 4
+  sleep 5
   change_default_route
   echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
   /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
