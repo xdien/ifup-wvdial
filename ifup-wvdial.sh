@@ -6,11 +6,8 @@ wvdial_conf="/etc/wvdial.conf"
 datal=`date +%Y%m%d`
 datat=`date +%T`
 define_clearos=`cat /etc/issue | grep 'ClearOS'`
-number_cycles_eth=5; cycle_eth=0
-cycles_start_wvdial=3
-ping_eth="no"; ping_ppp="no"
-usb_dev=""; cur_ping_ppp=""; cur_ping_eth=""
-run_program_eth=$3; run_program_ppp=$4
+cycles_start_wvdial=5
+ping_ppp="no"; usb_dev=""; cur_ping_ppp=""; run_program_ppp=$4
 
 fix_network_conf() {
   interface=$1
@@ -18,7 +15,7 @@ fix_network_conf() {
   extif=`awk -F "=" '/^EXTIF/{print $2}' ${networkconf} | sed 's/^[ \t]*//'`
   extif=`expr "${extif}" : ".*\(${interface}\)"`
   if [ -z "${extif}" ]; then
-     sed -i 's|EXTIF=".*|EXTIF="eth0 '${interface}'"|' "${networkconf}"
+     sed -i 's|EXTIF=".*|EXTIF="'${interface}'"|' "${networkconf}"
      echo "${datat} - Fixed option 'EXTIF=' in file ${networkconf}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
   fi
 }
@@ -168,42 +165,6 @@ change_default_route(){
            ip route add default via "${gateway}" dev ppp0
         fi
      fi
-  else
-    eth0_raised=`ip link show eth0 | grep "UP" | awk '{print $3}' | cut -d ',' -f 4 | cut -d '>' -f 1`
-    if [ "${eth0_raised}" != "LOWER_UP" ]; then
-      ifconfig eth0 up
-      return
-    fi
-    if [ "${gateway_dev}" != "eth0" ]; then
-      . /etc/sysconfig/network-scripts/ifcfg-eth0
-      if [ ${BOOTPROTO} = "dhcp" ]; then
-         if [ -f /var/lib/dhclient/eth0.routers ]; then
-            sleep 2
-            gateway=`head -n1 /var/lib/dhclient/eth0.routers`
-            if [ -z "${gateway}" ]; then
-               echo "${datat} - Not found GATEWAY for file /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-               echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-               /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
-               /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
-               return
-            fi
-        else
-           echo "${datat} - File not found /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-           return
-        fi
-      else
-         gateway=`echo $GATEWAY | awk '{ print $1 }'`
-         if [ -z ${gateway}]; then
-            echo "${datat} - Empty parameter GATEWAY for file /etc/sysconfig/network-scripts/ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-            return
-         fi
-      fi
-      if [ "${gateway}" != "${gateway_def}" ]; then
-         del_default_route
-         echo "${datat} - Adding a default route gateway=${gateway} for eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-         ip route add default via "${gateway}" dev eth0
-      fi
-    fi
  fi
 }
 
@@ -237,7 +198,7 @@ start_wvdial(){
     if [ "${wvdial_found}" = "no" ]; then
        return 1
     fi
-    gateway_dev=`ip route list | awk '/^default / { print $3 }'`
+    gateway_dev=`ip route list | awk '/^default / { print $5 }'`
     if [ "${gateway_dev}" = "ppp0" ]; then
        break
     fi
@@ -249,9 +210,6 @@ start_wvdial(){
   done
   sleep 5
   change_default_route
-  echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-  /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
-  /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
   /etc/init.d/firewall restart
   return 0
 }
@@ -259,105 +217,25 @@ start_wvdial(){
 checking_internet() {
   change_default_route
   gateway_dev=`ip route list | awk '/^default / { print $5 }'`
-  if [ "${gateway_dev}" = "ppp0" ]; then
-     ping_ppp="no"
-     /bin/ping -q -I ppp0 ${remote_ip} -c 3 > /dev/null 2>&1 && ping_ppp="yes"
-     if [ "${cur_ping_ppp}" != "${ping_ppp}" ]; then
-        echo "${datat} - Ping server via ppp0 " ${ping_ppp} 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-        cur_ping_ppp=${ping_ppp};
-     fi
-     if [ "${ping_ppp}" = "no" ]; then
-        usb_found="no"
-        ls -l ${usb_dev} > /dev/null 2>&1 && usb_found="yes"
-        echo "${datat} - USB device ${usb_dev} found " ${usb_found}  2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-        if [ "${usb_found}" = "yes" ]; then
-           wvdial_found="no"
-           ps -A | grep 'wvdial' > /dev/null 2>&1 && wvdial_found="yes"
-           echo "${datat} - Found running process wvdial ${wvdial_found}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-           if [ "${wvdial_found}" = "yes" ]; then
-              killall_wvdial
-           fi
+  ping_ppp="no"
+  /bin/ping -q -I ppp0 ${remote_ip} -c 3 > /dev/null 2>&1 && ping_ppp="yes"
+  if [ "${cur_ping_ppp}" != "${ping_ppp}" ]; then
+     echo "${datat} - 0 Ping server via ppp0 " ${ping_ppp} 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+     cur_ping_ppp=${ping_ppp};
+  fi
+  if [ "${ping_ppp}" = "no" ]; then
+     usb_found="no"
+     ls -l ${usb_dev} > /dev/null 2>&1 && usb_found="yes"
+     echo "${datat} - USB device ${usb_dev} found " ${usb_found}  2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+     if [ "${usb_found}" = "yes" ]; then
+        wvdial_found="no"
+        ps -A | grep 'wvdial' > /dev/null 2>&1 && wvdial_found="yes"
+        echo "${datat} - Found running process wvdial ${wvdial_found}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+        if [ "${wvdial_found}" = "yes" ]; then
+           killall_wvdial
+        fi
            start_wvdial
         fi
-     else
-        if [ ${number_cycles_eth} = ${cycle_eth} ]; then
-           echo "Check appears on the interface eth0 ( cycle - ${cycle_eth})"
-           cycle_eth=0;
-           eth0_raised=`ip link show eth0 | grep "UP" | awk '{print $3}' | cut -d ',' -f 4 | cut -d '>' -f 1`
-           if [ "${eth0_raised}" = "LOWER_UP" ]; then
-              echo "Interface eth0 raised"
-              . /etc/sysconfig/network-scripts/ifcfg-eth0
-              if [ "${BOOTPROTO}" = "dhcp" ]; then
-                 if [ -f /var/lib/dhclient/eth0.routers ]; then
-                    sleep 2
-                    gateway=`head -n1 /var/lib/dhclient/eth0.routers`
-                    if [ -z "${gateway}" ]; then
-                       echo "${datat} - Not found GATEWAY for file /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-                       echo "${datat} - Restart ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-                       /etc/sysconfig/network-scripts/ifdown-eth ifcfg-eth0
-                       /etc/sysconfig/network-scripts/ifup-eth ifcfg-eth0
-                       return
-                    fi
-                 else
-                    echo "${datat} - File not found /var/lib/dhclient/eth0.routers" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-                    return
-                 fi
-              else
-                 gateway=`echo $GATEWAY | awk '{ print $1 }'`
-                 if [ -z "${gateway}" ]; then
-                    echo "${datat} - Empty parameter GATEWAY for file /etc/sysconfig/network-scripts/ifcfg-eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-                    return
-                 fi
-              fi
-              if [ "${gateway}" != "${gateway_def}" ]; then
-                 del_default_route
-                 echo "${datat} - Adding a default route gateway=${gateway} for eth0" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-                 ip route add default via "${gateway}" dev eth0
-              fi
-              sleep 1
-              ping_eth="no"
-              /bin/ping -q -I eth0 ${remote_ip} -c 3 > /dev/null 2>&1 && ping_eth="yes"
-              echo "${datat} - Ping server via eth0 ${ping_eth}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-              if [ "${ping_eth}" = "no" ]; then
-                 del_default_route
-                 change_default_route
-              else
-                 killall_wvdial
-              fi
-           fi
-        fi
-        let "cycle_eth = ${cycle_eth} + 1";
-     fi
-  else
-     ping_eth="no"
-     /bin/ping -q -I eth0 ${remote_ip} -c 3 > /dev/null 2>&1 && ping_eth="yes"
-     if [ "${cur_ping_eth}" != "${ping_eth}" ]; then
-        echo "${datat} - Ping server via eth0 ${ping_eth}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-        cur_ping_eth="${ping_eth}"
-     fi
-     if [ ${ping_eth} = "no" ]; then
-        usb_found="no"
-        ls -l ${usb_dev} > /dev/null 2>&1 && usb_found="yes"
-        echo "${datat} - USB device ${usb_dev} found ${usb_found}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-        if [ "${usb_found}" = "yes" ]; then
-           wvdial_found="no"
-           ps -A | grep 'wvdial' > /dev/null 2>&1 && wvdial_found="yes"
-           echo "${datat} - Found running process wvdial ${wvdial_found}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-           if [ "${wvdial_found}" = "yes" ]; then
-              change_default_route
-              sleep 1
-              ping_ppp="no"
-              /bin/ping -q -I ppp0 ${remote_ip} -c 3 > /dev/null 2>&1 && ping_ppp="yes"
-              echo "${datat} - Ping server via ppp0 ${ping_eth}" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
-              if [ "${ping_ppp}" = "no" ]; then
-                 killall_wvdial
-              else
-                return
-              fi
-           fi
-           start_wvdial
-        fi
-     fi
   fi
 }
 
@@ -377,6 +255,7 @@ if [ "${error_code}" != "0" ]; then
 fi
 
 while true; do
+  datal=`date +%Y%m%d`
   datat=`date +%T`
   checking_internet
   sleep 5
