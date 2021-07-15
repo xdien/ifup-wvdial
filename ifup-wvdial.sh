@@ -188,8 +188,10 @@ killall_wvdial(){
 
 start_wvdial(){
   cycl_start=0
-  fix_network_conf "ppp0"
+  # fix_network_conf "ppp0"
   echo "${datat} - Start wvdial" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+  #cho 40s truoc khi start tranh loi urb -19 usbresubmit
+  sleep 40
   wvdial &
   while true; do
     sleep 3
@@ -209,8 +211,8 @@ start_wvdial(){
     let "cycl_start = ${cycl_start} + 1";
   done
   sleep 5
-  change_default_route
-  /etc/init.d/firewall restart
+  # change_default_route
+  # /etc/init.d/firewall restart
   return 0
 }
 
@@ -246,7 +248,7 @@ checking_internet() {
 echo "${datat} - Run script" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
 create_ifcfg_ppp0
 # create_ifcfg_eth3
-fix_network_conf "ppp0"
+# fix_network_conf "ppp0"
 fix_wvdial_conf
 error_code=$?
 if [ "${error_code}" != "0" ]; then
