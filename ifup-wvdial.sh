@@ -189,9 +189,9 @@ killall_wvdial(){
 start_wvdial(){
   cycl_start=0
   # fix_network_conf "ppp0"
-  echo "${datat} - Start wvdial" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
+  echo "${datat} - Start wvdial affter 60s" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
   #cho 40s truoc khi start tranh loi urb -19 usbresubmit
-  sleep 40
+  sleep 60
   wvdial &
   while true; do
     sleep 3
