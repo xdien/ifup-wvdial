@@ -92,7 +92,7 @@ fix_wvdial_conf() {
 }
 
 create_ifcfg_ppp0(){
-  ifcfg_ppp0=/etc/sysconfig/network-scripts/ifcfg-ppp0
+  ifcfg_ppp0=/etc/network/interfaces.d/ifcfg-ppp0
   if ! [ -f "${ifcfg_ppp0}" ]; then
       echo 'DEVICE=ppp0
             TYPE="xDSL"
@@ -245,7 +245,7 @@ checking_internet() {
 # fi
 echo "${datat} - Run script" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
 create_ifcfg_ppp0
-create_ifcfg_eth3
+# create_ifcfg_eth3
 fix_network_conf "ppp0"
 fix_wvdial_conf
 error_code=$?
