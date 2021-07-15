@@ -211,7 +211,7 @@ start_wvdial(){
     let "cycl_start = ${cycl_start} + 1";
   done
   sleep 5
-  echo "nameserver 8.8.8.8\nnameserver 1.1.1.1">/etc/resolv.conf
+  echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1">/etc/resolv.conf
   # change_default_route
   # /etc/init.d/firewall restart
   return 0
