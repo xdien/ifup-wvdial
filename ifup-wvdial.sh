@@ -7,7 +7,7 @@ datal=`date +%Y%m%d`
 datat=`date +%T`
 define_clearos=`cat /etc/issue | grep 'ClearOS'`
 cycles_start_wvdial=5
-ping_ppp="no"; usb_dev=""; cur_ping_ppp=""; run_program_ppp=$4
+ping_ppp="no"; usb_dev="/dev/ttyUSB4"; cur_ping_ppp=""; run_program_ppp=$4
 
 fix_network_conf() {
   interface=$1
