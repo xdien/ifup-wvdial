@@ -239,10 +239,10 @@ checking_internet() {
   fi
 }
 
-if [ -z "${define_clearos}" ]; then
-  echo "Script is designed to ClearOS"
-  exit
-fi
+# if [ -z "${define_clearos}" ]; then
+#   echo "Script is designed to ClearOS"
+#   exit
+# fi
 echo "${datat} - Run script" 2>&1 | tee -a ${path_log}"/ifup-wvdial-${datal}.log"
 create_ifcfg_ppp0
 create_ifcfg_eth3
