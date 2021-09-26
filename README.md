@@ -27,7 +27,8 @@ Baud = 921600
 Init3 = AT+CGDCONT=1,"IP","m3-world"
 ```
 
-`$ nano /etc/network/interfaces`
+`$ sudo nano /etc/network/interfaces`
+append line:
 ```
 auto ppp0
     iface ppp0 inet wvdial
