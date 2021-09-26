@@ -9,6 +9,24 @@ Developer site: http://khv.at.ua
 
 `$ cp ifup-wvdial.sh /etc/ppp/`
 
+`$ sudo nano /etc/wvdial.conf`
+```
+[Dialer Defaults]
+Phone = *99#
+Username = mms       
+Auto dns = 1
+Dial Command = ATDT
+Password = mms     
+; Username = 9180****** (If your provider use without Username)
+Auto dns = 1
+Dial Command = ATDT
+; Password = 9180****** (If your provider use without Password)
+Stupid Mode = 1
+Modem = /dev/ttyUSB4
+Baud = 921600
+Init3 = AT+CGDCONT=1,"IP","m3-world"
+```
+
 `$ nano /etc/network/interfaces`
 ```
 auto ppp0
