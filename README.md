@@ -36,3 +36,5 @@ auto ppp0
        pre-up /bin/bash /etc/ppp/ifup-wvdial.sh &> /dev/null 2>&1 &
        post-up echo "3G (ppp0) deamon is online"
 ```
+
+`$ sudo chmod +x /etc/ppp/ifup-wvdial.sh`
